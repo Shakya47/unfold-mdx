@@ -1,0 +1,54 @@
+{
+  "name": "unfold-mdx",
+  "version": "1.0.0",
+  "description": "Progressive-depth prose explanations for React + MDX",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./diff": {
+      "types": "./dist/diff/index.d.ts",
+      "import": "./dist/diff/index.js",
+      "require": "./dist/diff/index.cjs"
+    },
+    "./interop": {
+      "types": "./dist/interop/index.d.ts",
+      "import": "./dist/interop/index.js",
+      "require": "./dist/interop/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts src/diff/index.ts src/interop/index.ts --format cjs,esm --dts --clean",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "diff-match-patch": "^1.0.5"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.0.0",
+    "@types/diff-match-patch": "^1.0.36",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "jsdom": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

@@ -1,0 +1,3 @@
+export { tokenize } from "./tokenize.js";
+export { sentenceDiff } from "./sentenceDiff.js";
+export type { SentenceDiff } from "./sentenceDiff.js";

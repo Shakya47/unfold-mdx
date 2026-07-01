@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Production Build
+dist/
+
+# Project Specifications & Tickets
+specs_tickets/
+
+# OS Files
+.DS_Store
+Thumbs.db
