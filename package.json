@@ -1,5 +1,5 @@
 {
-  "name": "unfold-mdx",
+  "name": "@unfold-mdx/react",
   "version": "0.0.1",
   "description": "Progressive-depth prose & code explanations for React + MDX. Sentence-level diffing, inline code highlights, and Shiki syntax coloring — all headless.",
   "main": "./dist/index.cjs",

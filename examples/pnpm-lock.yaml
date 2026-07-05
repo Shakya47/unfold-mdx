@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@unfold-mdx/react':
+        specifier: file:..
+        version: file:..(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(shiki@1.29.2)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -17,9 +20,6 @@ importers:
       shiki:
         specifier: ^1.0.0
         version: 1.29.2
-      unfold-mdx:
-        specifier: file:..
-        version: file:..(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(shiki@1.29.2)
     devDependencies:
       '@types/react':
         specifier: ^18.2.0
@@ -488,6 +488,16 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
+  '@unfold-mdx/react@file:..':
+    resolution: {directory: .., type: directory}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+      shiki: ^1.0.0
+    peerDependenciesMeta:
+      shiki:
+        optional: true
+
   '@ungap/structured-clone@1.3.2':
     resolution: {integrity: sha512-5jsZFwgR5rTdKwidH9Qmat75RKwqfpKlWWB1frDkljN127mwqBu8K0PYo7/hFpF03IEJpfVPpCQDY/eDx3iHvA==}
 
@@ -862,16 +872,6 @@ packages:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
-
-  unfold-mdx@file:..:
-    resolution: {directory: .., type: directory}
-    peerDependencies:
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
-      shiki: ^1.0.0
-    peerDependenciesMeta:
-      shiki:
-        optional: true
 
   unist-util-is@6.0.1:
     resolution: {integrity: sha512-LsiILbtBETkDz8I9p1dQ0uyRUWuaQzd/cuEeS1hoRSyW5E5XGmTzlwY1OrNzzakGowI9Dr/I8HVaw4hTtnxy8g==}
@@ -1311,6 +1311,14 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
+  '@unfold-mdx/react@file:..(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(shiki@1.29.2)':
+    dependencies:
+      diff-match-patch: 1.0.5
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    optionalDependencies:
+      shiki: 1.29.2
+
   '@ungap/structured-clone@1.3.2': {}
 
   '@vitejs/plugin-react@4.7.0(vite@5.4.21)':
@@ -1725,14 +1733,6 @@ snapshots:
       escape-string-regexp: 1.0.5
 
   typescript@5.9.3: {}
-
-  unfold-mdx@file:..(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(shiki@1.29.2):
-    dependencies:
-      diff-match-patch: 1.0.5
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-    optionalDependencies:
-      shiki: 1.29.2
 
   unist-util-is@6.0.1:
     dependencies:
