@@ -42,52 +42,89 @@ yarn add unfold-mdx
 
 ## Quick Start
 
-```tsx
-import { Depth, DepthLevel, DepthCode } from "unfold-mdx";
-import "unfold-mdx/theme.css"; // optional — opinionated dark theme
+Import the components and write multiple snapshots inside `<Depth>` elements. You can write your code snapshots using standard Markdown backticks (the recommended native approach), or using Javascript template strings.
 
-export default function Demo() {
-  return (
-    <Depth show="both" orientation="horizontal" indicators buttonVariant="arrow">
-      <DepthLevel label="Overview">
-        Quicksort is a divide-and-conquer sorting algorithm.
-        It selects a 'pivot' element and partitions the array around it.
-      </DepthLevel>
-      <DepthCode lang="typescript">
-{`function quicksort(arr: number[]): number[] {
-  if (arr.length <= 1) return arr;
-}`}
-      </DepthCode>
+### 1. Standard (Prose + Code) Walkthrough
 
-      <DepthLevel label="Partitioning">
-        Quicksort is a divide-and-conquer sorting algorithm.
-        It selects a 'pivot' element and partitions the array around it.
-        Elements smaller than the pivot go left; larger ones go right.
-      </DepthLevel>
-      <DepthCode lang="typescript">
-{`function quicksort(arr: number[]): number[] {
-  if (arr.length <= 1) return arr;
+```mdx
+import { Depth, DepthLevel, DepthCode } from "@unfold-mdx/react";
+import "@unfold-mdx/react/theme.css";
 
-  const pivot = arr[arr.length - 1];
-  const left = arr.filter((x) => x < pivot);
-  const right = arr.filter((x) => x > pivot);
-}`}
-      </DepthCode>
-    </Depth>
-  );
-}
+<Depth show="both" orientation="horizontal" ratio={0.5} indicators={true}>
+  <DepthLevel label="Overview">
+    Nuclear fission splits a heavy atom into two lighter ones.
+    This releases a large amount of energy.
+  </DepthLevel>
+  <DepthCode lang="js">
+  ```js
+  const status = "splitting";
+  ```
+  </DepthCode>
+
+  <DepthLevel label="Trigger">
+    Nuclear fission splits a heavy atom into two lighter ones.
+    This releases a large amount of energy.
+    The split is triggered by a neutron striking the nucleus.
+  </DepthLevel>
+  <DepthCode lang="js">
+  ```js
+  const status = "splitting";
+  const trigger = "neutron";
+  ```
+  </DepthCode>
+</Depth>
 ```
 
-Click **Next** → the library diffs the two snapshots and renders only the current step, marking new sentences and code lines.
+### 2. Code-Only Walkthrough
+
+If you want to render only the code pane and track syntax revisions without any prose description:
+- Set `show="code"` on the `<Depth>` container.
+- Omit `<DepthLevel>` children completely.
+
+```mdx
+<Depth show="code" indicators={true} buttonVariant="arrow">
+  <DepthCode lang="js" label="Step 1">
+  ```js
+  const score = 10;
+  ```
+  </DepthCode>
+
+  <DepthCode lang="js" label="Step 2">
+  ```js
+  const score = 10;
+  const multiplier = 2;
+  const finalScore = score * multiplier;
+  ```
+  </DepthCode>
+</Depth>
+```
+
+### 3. Prose-Only Walkthrough
+
+Similarly, to describe text changes (like editing copy or paragraphs) without code:
+- Set `show="prose"` on the `<Depth>` container.
+- Omit `<DepthCode>` children completely.
+
+```mdx
+<Depth show="prose" indicators={true}>
+  <DepthLevel label="Draft 1">
+    This is the first draft of the introduction statement.
+  </DepthLevel>
+  <DepthLevel label="Draft 2">
+    This is the first draft of the introduction statement.
+    It has been revised to include additional specifications.
+  </DepthLevel>
+</Depth>
+```
 
 ---
 
 ## Adding Shiki Syntax Highlighting
 
 ```tsx
-import { Depth, DepthLevel, DepthCode } from "unfold-mdx";
-import { createShikiHighlighter } from "unfold-mdx/shiki";
-import "unfold-mdx/theme.css";
+import { Depth, DepthLevel, DepthCode } from "@unfold-mdx/react";
+import { createShikiHighlighter } from "@unfold-mdx/react/shiki";
+import "@unfold-mdx/react/theme.css";
 
 // Create once at module scope
 const highlighter = createShikiHighlighter({
