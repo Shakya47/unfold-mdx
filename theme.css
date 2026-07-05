@@ -1,0 +1,212 @@
+/* ──────────────────────────────────────────────────────────────
+   unfold-mdx  ·  Opinionated Default Theme
+   Import: import 'unfold-mdx/theme.css'
+
+   Override points (CSS custom properties):
+     --unfold-ratio           Prose/code split (0–1, default 0.5)
+     --unfold-prose-color     Prose text color
+     --unfold-prose-muted     Equal-sentence dimmed color
+     --unfold-code-bg         Code pane background
+     --unfold-code-border     Code pane border
+     --unfold-code-text       Code fallback text color
+     --unfold-highlight       Thin-border highlight color
+     --unfold-highlight-bg    Subtle background tint on added items
+     --unfold-btn-bg          Button background
+     --unfold-btn-border      Button border
+     --unfold-btn-text        Button text color
+     --unfold-btn-hover-bg    Button hover background
+     --unfold-dot-bg          Inactive dot color
+     --unfold-dot-active      Active dot color
+   ────────────────────────────────────────────────────────────── */
+
+/* ── Root ── */
+[data-unfold-root] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: inherit;
+}
+
+/* ── Pane Container ── */
+[data-unfold-panes] {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  min-height: 200px;
+}
+
+[data-unfold-root][data-orientation="vertical"] [data-unfold-panes] {
+  flex-direction: column;
+}
+
+[data-unfold-root][data-show="both"][data-orientation="horizontal"] [data-unfold-pane="prose"] {
+  flex: var(--unfold-ratio, 0.5);
+  min-width: 0;
+}
+
+[data-unfold-root][data-show="both"][data-orientation="horizontal"] [data-unfold-pane="code"] {
+  flex: calc(1 - var(--unfold-ratio, 0.5));
+  min-width: 0;
+}
+
+/* ── Single Pane Layouts (Full Width) ── */
+[data-unfold-root][data-show="prose"] [data-unfold-pane="prose"] {
+  flex: 1;
+  width: 100%;
+}
+
+[data-unfold-root][data-show="code"] [data-unfold-pane="code"] {
+  flex: 1;
+  width: 100%;
+}
+
+/* ── Prose Pane ── */
+[data-unfold-pane="prose"] {
+  line-height: 1.75;
+  font-size: 1.05rem;
+  color: var(--unfold-prose-color, #e2e8f0);
+  padding: 4px 0;
+}
+
+/* ── Code Pane ── */
+[data-unfold-pane="code"] {
+  background: var(--unfold-code-bg, #0d1117);
+  border: 1px solid var(--unfold-code-border, rgba(56, 189, 248, 0.15));
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+[data-unfold-pane="code"] pre {
+  margin: 0;
+  padding: 16px 20px;
+  overflow-x: auto;
+}
+
+[data-unfold-pane="code"] code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--unfold-code-text, #c9d1d9);
+}
+
+/* ── Prose Sentence Highlighting ──
+   Spec: thin border, NOT a background fill.
+   Equal sentences look normal; added sentences get a subtle marker. */
+
+[data-sentence="equal"] {
+  transition: border-color 0.6s ease, background-color 0.6s ease;
+}
+
+[data-sentence="added"] {
+  border: 1px solid var(--unfold-highlight, rgba(56, 189, 248, 0.5));
+  border-radius: 3px;
+  padding: 0 3px;
+  background: var(--unfold-highlight-bg, rgba(56, 189, 248, 0.06));
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+/* ── Code Token Highlighting ── */
+[data-code-token="added"] {
+  /* Inherits line highlight. */
+}
+
+/* ── Code Line Highlighting ──
+   Added or changed lines get a thin border and subtle background tint, matching prose.
+   Equal lines get transparent borders to prevent text shifting during transitions. */
+[data-code-line="added"],
+[data-code-line="changed"] {
+  display: block;
+  border: 1px solid var(--unfold-highlight, rgba(56, 189, 248, 0.5));
+  border-radius: 4px;
+  padding: 0 6px;
+  margin: 2px 0;
+  background: var(--unfold-highlight-bg, rgba(56, 189, 248, 0.06));
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+[data-code-line="equal"] {
+  display: block;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0 6px;
+  margin: 2px 0;
+  transition: border-color 0.6s ease, background-color 0.6s ease;
+}
+
+/* ── Controls ── */
+[data-unfold-controls] {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+[data-unfold-controls] > button {
+  background: var(--unfold-btn-bg, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--unfold-btn-border, rgba(255, 255, 255, 0.12));
+  color: var(--unfold-btn-text, #e2e8f0);
+  padding: 7px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+[data-unfold-controls] > button:hover:not([aria-disabled="true"]) {
+  background: var(--unfold-btn-hover-bg, rgba(255, 255, 255, 0.12));
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-unfold-controls] > button[aria-disabled="true"] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Indicators (carousel dots) ── */
+[data-unfold-indicators] {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+[data-unfold-dot] {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--unfold-dot-bg, rgba(255, 255, 255, 0.15));
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+[data-unfold-dot]:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+[data-unfold-dot][data-active="true"] {
+  background: var(--unfold-dot-active, #38bdf8);
+  transform: scale(1.25);
+}
+
+/* ── Animation: data-enter flash ── */
+[data-enter="true"] {
+  animation: unfold-enter 0.4s ease-out;
+}
+
+@keyframes unfold-enter {
+  0%   { background-color: rgba(56, 189, 248, 0.15); }
+  100% { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-enter="true"] {
+    animation: none;
+  }
+}
+
+/* ── SSR / no-JS fallback ── */
+[data-unfold-root] > [data-depth-level]:not([data-unfold-active]),
+[data-unfold-root] > pre[data-lang]:not([data-unfold-active]) {
+  display: none;
+}

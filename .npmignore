@@ -1,0 +1,13 @@
+# Only ship dist, theme.css, README, LICENSE (controlled via "files" in package.json).
+# Explicitly exclude everything else for safety.
+src/
+tests/
+examples/
+specs_tickets/
+.git/
+.gitignore
+.DS_Store
+tsconfig.json
+vitest.config.ts
+pnpm-lock.yaml
+node_modules/

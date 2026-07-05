@@ -6,8 +6,9 @@ import { renderToString } from "react-dom/server";
 import "@testing-library/jest-dom/vitest";
 import { Depth } from "../../src/components/Depth.js";
 import { DepthLevel } from "../../src/components/DepthLevel.js";
+import { DepthCode } from "../../src/components/DepthCode.js";
 
-// Helper to wait one animation frame (clearing justReturned)
+// Helper to wait one animation frame (clearing justEntered)
 const waitAnimationFrame = () =>
   new Promise<void>((resolve) => {
     requestAnimationFrame(() => {
@@ -28,6 +29,9 @@ describe("<Depth> Component", () => {
       <DepthLevel label="why it works">
         Nuclear fission splits a heavy atom. This releases energy. The split is triggered by a neutron. The energy comes from E=mc2.
       </DepthLevel>
+      <DepthCode lang="js">{"console.log(1);"}</DepthCode>
+      <DepthCode lang="js">{"console.log(1);\nconsole.log(2);"}</DepthCode>
+      <DepthCode lang="js">{"console.log(1);\nconsole.log(2);\nconsole.log(3);"}</DepthCode>
     </Depth>
   );
 
@@ -56,7 +60,7 @@ describe("<Depth> Component", () => {
 
     const root = container.querySelector("[data-unfold-root]");
     const nextBtn = container.querySelector("[data-unfold-next]")!;
-    const backBtn = container.querySelector("[data-unfold-back]")!;
+    const backBtn = container.querySelector("[data-unfold-prev]")!;
 
     expect(backBtn).toHaveAttribute("aria-disabled", "true");
     expect(nextBtn).toHaveAttribute("aria-disabled", "false");
@@ -67,8 +71,8 @@ describe("<Depth> Component", () => {
     expect(root).toHaveAttribute("data-level", "1");
     expect(root).toHaveAttribute("aria-label", "how it works");
     expect(backBtn).toHaveAttribute("aria-disabled", "false");
-    expect(backBtn).toHaveAttribute("aria-label", "Go back to level: overview");
-    expect(nextBtn).toHaveAttribute("aria-label", "Advance to level: why it works");
+    expect(backBtn).toHaveAttribute("aria-label", "Go back to step: overview");
+    expect(nextBtn).toHaveAttribute("aria-label", "Advance to step: why it works");
 
     const spans = container.querySelectorAll("[data-sentence]");
     expect(spans).toHaveLength(3);
@@ -84,7 +88,7 @@ describe("<Depth> Component", () => {
     const { container } = render(sampleMdx);
 
     const nextBtn = container.querySelector("[data-unfold-next]")!;
-    const backBtn = container.querySelector("[data-unfold-back]")!;
+    const backBtn = container.querySelector("[data-unfold-prev]")!;
 
     // Move to level 1 (2 equal sentences, 1 added sentence)
     await user.click(nextBtn);
@@ -104,9 +108,9 @@ describe("<Depth> Component", () => {
       await waitAnimationFrame();
     });
 
-    // Settle to equal after decay
-    expect(spans[0]).toHaveAttribute("data-sentence", "equal");
-    expect(spans[1]).toHaveAttribute("data-sentence", "equal");
+    // Settle to added (no decay per user feedback)
+    expect(spans[0]).toHaveAttribute("data-sentence", "added");
+    expect(spans[1]).toHaveAttribute("data-sentence", "added");
   });
 
   it("should render controlled mode and support navigation", async () => {
@@ -123,7 +127,7 @@ describe("<Depth> Component", () => {
     expect(root).toHaveAttribute("data-level", "1");
 
     const nextBtn = container.querySelector("[data-unfold-next]")!;
-    const backBtn = container.querySelector("[data-unfold-back]")!;
+    const backBtn = container.querySelector("[data-unfold-prev]")!;
 
     // Next is disabled because it is at the last level
     expect(nextBtn).toHaveAttribute("aria-disabled", "true");
@@ -147,54 +151,131 @@ describe("<Depth> Component", () => {
   });
 
   it("should output correct HTML structures and attributes", () => {
-    const { container } = render(sampleMdx);
+    const { container } = render(
+      <Depth indicators={true}>
+        <DepthLevel label="overview">Sentence one.</DepthLevel>
+        <DepthLevel label="details">Sentence one. Sentence two.</DepthLevel>
+      </Depth>
+    );
 
     const root = container.querySelector("[data-unfold-root]");
     expect(root).toBeInTheDocument();
     expect(root).toHaveAttribute("role", "region");
     expect(root).toHaveAttribute("aria-label", "overview");
+    expect(root).toHaveAttribute("data-show", "both");
+    expect(root).toHaveAttribute("data-orientation", "horizontal");
 
-    const content = container.querySelector("[data-unfold-content]");
-    expect(content).toBeInTheDocument();
-    expect(content).toHaveAttribute("aria-live", "polite");
+    const panes = container.querySelector("[data-unfold-panes]");
+    expect(panes).toBeInTheDocument();
+
+    const prosePane = container.querySelector("[data-unfold-pane='prose']");
+    expect(prosePane).toBeInTheDocument();
+    expect(prosePane).toHaveAttribute("aria-live", "polite");
+
+    const codePane = container.querySelector("[data-unfold-pane='code']");
+    expect(codePane).toBeInTheDocument();
+    expect(codePane).toHaveAttribute("aria-live", "polite");
 
     const controls = container.querySelector("[data-unfold-controls]");
     expect(controls).toBeInTheDocument();
 
-    const backBtn = container.querySelector("[data-unfold-back]")!;
+    const backBtn = container.querySelector("[data-unfold-prev]")!;
     const nextBtn = container.querySelector("[data-unfold-next]")!;
     expect(backBtn).toBeInTheDocument();
     expect(nextBtn).toBeInTheDocument();
 
+    const indicators = container.querySelector("[data-unfold-indicators]");
+    expect(indicators).toBeInTheDocument();
+    const dots = container.querySelectorAll("[data-unfold-dot]");
+    expect(dots).toHaveLength(2);
+
     expect(backBtn).toHaveAttribute("aria-disabled", "true");
     expect(nextBtn).toHaveAttribute("aria-disabled", "false");
-    expect(nextBtn).toHaveAttribute("aria-label", "Advance to level: how it works");
+    expect(nextBtn).toHaveAttribute("aria-label", "Advance to step: details");
   });
 
-  it("should support SSR / no-JS fallback rendering", () => {
+  it("should extract label from DepthCode and support data-enter animation on advance", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <Depth defaultIndex={0}>
+        <DepthLevel label="step 1">First</DepthLevel>
+        <DepthCode>{"const a = 1;"}</DepthCode>
+        <DepthCode label="step 2 code">{"const b = 2;"}</DepthCode>
+      </Depth>
+    );
+
+    const root = container.querySelector("[data-unfold-root]");
+    const nextBtn = container.querySelector("[data-unfold-next]")!;
+    
+    // Label from DepthLevel for step 0
+    expect(root).toHaveAttribute("aria-label", "step 1");
+    
+    await user.click(nextBtn);
+    
+    // Label from DepthCode for step 1 (since there is no DepthLevel for step 1)
+    expect(root).toHaveAttribute("aria-label", "step 2 code");
+
+    // Check data-enter is applied immediately on advance on the code line
+    const codeLines = container.querySelectorAll("[data-code-line]");
+    const changedLine = Array.from(codeLines).find(t => t.getAttribute("data-code-line") === "changed" || t.getAttribute("data-code-line") === "added");
+    expect(changedLine).toHaveAttribute("data-enter", "true");
+
+    // Wait for animation frame decay
+    await act(async () => {
+      await waitAnimationFrame();
+    });
+
+    // Check data-enter is removed from the line
+    expect(changedLine).not.toHaveAttribute("data-enter");
+  });
+
+  it("should support SSR / no-JS fallback rendering with deepest level marking", () => {
     const mdx = (
       <Depth defaultIndex={0}>
         <DepthLevel label="overview">Sentence one.</DepthLevel>
+        <DepthCode lang="js">{"one"}</DepthCode>
         <DepthLevel label="how it works">Sentence one. Sentence two.</DepthLevel>
+        <DepthCode lang="js">{"two"}</DepthCode>
         <DepthLevel label="why it works">Sentence one. Sentence two. Sentence three.</DepthLevel>
+        <DepthCode lang="js">{"three"}</DepthCode>
       </Depth>
     );
 
     const serverHtml = renderToString(mdx);
 
-    // Verify root contains all DepthLevel containers and accessibility attributes
+    // Verify root contains accessibility attributes
     expect(serverHtml).toContain('data-unfold-root="true"');
     expect(serverHtml).toContain('data-level="2"'); // last level by default
     expect(serverHtml).toContain('data-total-levels="3"');
     expect(serverHtml).toContain('role="region"');
     expect(serverHtml).toContain('aria-label="why it works"');
 
-    // Verify all 3 DepthLevels are present with data-depth-level="true"
-    expect(serverHtml).toContain('data-depth-level="true"');
-    
-    // Verify only the last level has data-unfold-active="true"
-    expect(serverHtml).toContain('<div data-depth-level="true">Sentence one.</div>');
-    expect(serverHtml).toContain('<div data-depth-level="true">Sentence one. Sentence two.</div>');
+    // Verify deepest prose is marked
     expect(serverHtml).toContain('<div data-depth-level="true" data-unfold-active="true">Sentence one. Sentence two. Sentence three.</div>');
+    // Verify earlier prose is not marked
+    expect(serverHtml).toContain('<div data-depth-level="true">Sentence one.</div>');
+    
+    // Verify deepest code is marked
+    expect(serverHtml).toContain('<pre data-lang="js" data-unfold-active="true"><code>three</code></pre>');
+    // Verify earlier code is not marked
+    expect(serverHtml).toContain('<pre data-lang="js"><code>one</code></pre>');
+  });
+
+  it("should support disabling highlights via highlight={false}", () => {
+    const { container } = render(
+      <Depth defaultIndex={0} highlight={false}>
+        <DepthLevel label="overview">Sentence one. Sentence two.</DepthLevel>
+        <DepthCode lang="js">{"const x = 1;"}</DepthCode>
+      </Depth>
+    );
+
+    const sentences = container.querySelectorAll("[data-sentence]");
+    expect(sentences).toHaveLength(2);
+    expect(sentences[0]).toHaveAttribute("data-sentence", "equal");
+    expect(sentences[1]).toHaveAttribute("data-sentence", "equal");
+
+    const codeLines = container.querySelectorAll("[data-code-line]");
+    expect(codeLines).toHaveLength(1);
+    expect(codeLines[0]).toHaveAttribute("data-code-line", "equal");
   });
 });

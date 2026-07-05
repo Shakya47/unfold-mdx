@@ -1,7 +1,7 @@
 {
   "name": "unfold-mdx",
-  "version": "1.0.0",
-  "description": "Progressive-depth prose explanations for React + MDX",
+  "version": "0.0.1",
+  "description": "Progressive-depth prose & code explanations for React + MDX. Sentence-level diffing, inline code highlights, and Shiki syntax coloring — all headless.",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,27 +17,61 @@
       "import": "./dist/diff/index.js",
       "require": "./dist/diff/index.cjs"
     },
-    "./interop": {
-      "types": "./dist/interop/index.d.ts",
-      "import": "./dist/interop/index.js",
-      "require": "./dist/interop/index.cjs"
-    }
+    "./shiki": {
+      "types": "./dist/shiki/index.d.ts",
+      "import": "./dist/shiki/index.js",
+      "require": "./dist/shiki/index.cjs"
+    },
+    "./theme.css": "./theme.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "theme.css",
+    "README.md",
+    "LICENSE"
   ],
-  "sideEffects": false,
-  "scripts": {
-    "build": "tsup src/index.ts src/diff/index.ts src/interop/index.ts --format cjs,esm --dts --clean",
-    "test": "vitest run"
+  "sideEffects": [
+    "theme.css"
+  ],
+  "keywords": [
+    "react",
+    "mdx",
+    "progressive-disclosure",
+    "code-diff",
+    "sentence-diff",
+    "shiki",
+    "syntax-highlighting",
+    "headless",
+    "documentation",
+    "tutorial"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Shakya47/unfold-mdx.git"
   },
+  "homepage": "https://github.com/Shakya47/unfold-mdx#readme",
+  "bugs": {
+    "url": "https://github.com/Shakya47/unfold-mdx/issues"
+  },
+  "author": "Shakya47",
   "license": "MIT",
+  "scripts": {
+    "build": "tsup src/index.ts src/diff/index.ts src/shiki/index.ts --format cjs,esm --dts --clean",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build && pnpm run test"
+  },
   "dependencies": {
     "diff-match-patch": "^1.0.5"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
+    "react-dom": ">=18.0.0",
+    "shiki": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "shiki": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.0.0",
@@ -47,6 +81,7 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "jsdom": "^22.0.0",
+    "shiki": "^1.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"

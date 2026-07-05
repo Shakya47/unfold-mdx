@@ -2,8 +2,11 @@ import { createContext } from "react";
 
 export interface DepthContextValue {
   selectedIndex: number;
-  totalLevels: number;
+  totalSteps: number;
   labels: string[];
+  show: "both" | "prose" | "code";
+  orientation: "horizontal" | "vertical";
+  goTo: (index: number) => void;
   advance: () => void;
   back: () => void;
 }

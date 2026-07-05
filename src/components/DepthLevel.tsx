@@ -20,3 +20,5 @@ export function DepthLevel({ label, children, ...props }: DepthLevelProps) {
     </div>
   );
 }
+
+DepthLevel.unfoldType = "level";

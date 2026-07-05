@@ -1,11 +1,25 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { DepthContext, DepthContextValue } from "../context/DepthContext.js";
 import { sentenceDiff, SentenceDiff } from "../diff/index.js";
+import { codeDiff, CodeLineDiff } from "../diff/codeDiff.js";
+import { DepthLevel } from "./DepthLevel.js";
+import { DepthCode } from "./DepthCode.js";
+import { DepthPane } from "./DepthPane.js";
+import { Controls } from "./controls/Controls.js";
+import type { ShikiHighlighter } from "../shiki/index.js";
 
 export interface DepthProps {
   selectedIndex?: number;
   defaultIndex?: number;
   onChange?: (i: number) => void;
+  orientation?: "horizontal" | "vertical";
+  ratio?: number;
+  show?: "both" | "prose" | "code";
+  indicators?: boolean;
+  buttonVariant?: "text" | "arrow" | "chevron" | "minimal";
+  animate?: boolean;
+  highlight?: boolean;
+  highlighter?: ShikiHighlighter;
   children: React.ReactNode;
 }
 
@@ -32,6 +46,14 @@ export function Depth({
   selectedIndex,
   defaultIndex,
   onChange,
+  orientation = "horizontal",
+  ratio = 0.5,
+  show = "both",
+  indicators = false,
+  buttonVariant = "text",
+  animate = true,
+  highlight = true,
+  highlighter,
   children,
 }: DepthProps) {
   // Determine controlled state
@@ -47,102 +69,140 @@ export function Depth({
   }, []);
 
   // Level data extraction
-  const levels = useMemo(() => {
-    const extracted: { label: string; text: string }[] = [];
+  const parsedChildren = useMemo(() => {
+    const proseLevels: { label: string; text: string }[] = [];
+    const codeLevels: { lang: string; label: string; text: string }[] = [];
+
     React.Children.forEach(children, (child) => {
       if (React.isValidElement(child)) {
-        const label = child.props.label || "";
-        const text = getTextContent(child.props.children);
-        extracted.push({ label, text });
+        const type = (child.type as any)?.unfoldType || child.type;
+        if (type === "level" || type === DepthLevel) {
+          proseLevels.push({
+            label: child.props.label || "",
+            text: getTextContent(child.props.children),
+          });
+        } else if (type === "code" || type === DepthCode) {
+          codeLevels.push({
+            lang: child.props.lang || "",
+            label: child.props.label || "",
+            text: getTextContent(child.props.children),
+          });
+        }
       }
     });
-    return extracted;
+    return { proseLevels, codeLevels };
   }, [children]);
 
-  // Pre-computed diff table
-  const diffTable = useMemo(() => {
+  // Pre-computed diff tables
+  const proseDiffTable = useMemo(() => {
     const table: SentenceDiff[][] = [];
-    if (levels.length > 0) {
-      table.push(sentenceDiff("", levels[0].text));
-      for (let i = 1; i < levels.length; i++) {
-        table.push(sentenceDiff(levels[i - 1].text, levels[i].text));
+    if (parsedChildren.proseLevels.length > 0) {
+      table.push(sentenceDiff("", parsedChildren.proseLevels[0].text));
+      for (let i = 1; i < parsedChildren.proseLevels.length; i++) {
+        table.push(sentenceDiff(parsedChildren.proseLevels[i - 1].text, parsedChildren.proseLevels[i].text));
       }
     }
     return table;
-  }, [levels]);
+  }, [parsedChildren.proseLevels]);
 
-  // Transition tracking for highlight decay
-  const [isBackTransition, setIsBackTransition] = useState(false);
-  const [justReturned, setJustReturned] = useState(false);
+  const codeDiffTable = useMemo(() => {
+    const table: CodeLineDiff[][] = [];
+    if (parsedChildren.codeLevels.length > 0) {
+      table.push(codeDiff("", parsedChildren.codeLevels[0].text));
+      for (let i = 1; i < parsedChildren.codeLevels.length; i++) {
+        table.push(codeDiff(parsedChildren.codeLevels[i - 1].text, parsedChildren.codeLevels[i].text));
+      }
+    }
+    return table;
+  }, [parsedChildren.codeLevels]);
+
+  // Transition tracking for enter animation
+  const [justEntered, setJustEntered] = useState(false);
   const prevIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (prevIndexRef.current !== null) {
-      if (currentIndex < prevIndexRef.current) {
-        setIsBackTransition(true);
-        setJustReturned(true);
-      } else if (currentIndex > prevIndexRef.current) {
-        setIsBackTransition(false);
-        setJustReturned(false);
-      }
+    if (prevIndexRef.current !== null && currentIndex !== prevIndexRef.current) {
+      setJustEntered(true);
     }
     prevIndexRef.current = currentIndex;
   }, [currentIndex]);
 
   useEffect(() => {
-    if (justReturned) {
+    if (justEntered) {
       const animFrameId = requestAnimationFrame(() => {
-        setJustReturned(false);
+        setJustEntered(false);
       });
       return () => cancelAnimationFrame(animFrameId);
     }
-  }, [justReturned]);
+  }, [justEntered]);
 
-  const totalLevels = levels.length;
+  const totalSteps = Math.max(parsedChildren.proseLevels.length, parsedChildren.codeLevels.length, 1);
 
-  const handleBack = () => {
-    if (currentIndex > 0) {
+  const goTo = (index: number) => {
+    if (index >= 0 && index < totalSteps) {
       if (!isControlled) {
-        setInternalIndex(currentIndex - 1);
+        setInternalIndex(index);
       }
-      onChange?.(currentIndex - 1);
+      onChange?.(index);
     }
   };
 
-  const handleNext = () => {
-    if (currentIndex < totalLevels - 1) {
-      if (!isControlled) {
-        setInternalIndex(currentIndex + 1);
-      }
-      onChange?.(currentIndex + 1);
-    }
-  };
+  const handleBack = () => goTo(currentIndex - 1);
+  const handleNext = () => goTo(currentIndex + 1);
+
+  // Generate labels spanning up to totalSteps
+  const maxLabels = Math.max(parsedChildren.proseLevels.length, parsedChildren.codeLevels.length);
+  const labels = Array.from({ length: maxLabels }).map((_, i) => {
+    return parsedChildren.proseLevels[i]?.label || parsedChildren.codeLevels[i]?.label || `Step ${i + 1}`;
+  });
 
   const contextValue: DepthContextValue = {
     selectedIndex: currentIndex,
-    totalLevels,
-    labels: levels.map((l) => l.label),
+    totalSteps,
+    labels,
+    show,
+    orientation,
+    goTo,
     advance: handleNext,
     back: handleBack,
   };
 
   // SSR Fallback or Hydration Phase (isMounted is false)
   if (!isMounted) {
-    const defaultLastIndex = totalLevels - 1;
+    const defaultLastIndex = totalSteps - 1;
+    let proseCount = 0;
+    let codeCount = 0;
+    const maxProse = parsedChildren.proseLevels.length;
+    const maxCode = parsedChildren.codeLevels.length;
+
     return (
       <DepthContext.Provider value={contextValue}>
         <div
           data-unfold-root
+          data-orientation={orientation}
+          data-show={show}
+          style={{ "--unfold-ratio": ratio } as React.CSSProperties}
           data-level={defaultLastIndex}
-          data-total-levels={totalLevels}
+          data-total-levels={totalSteps}
           role="region"
-          aria-label={levels[defaultLastIndex]?.label}
+          aria-label={labels[defaultLastIndex]}
         >
-          {React.Children.map(children, (child, index) => {
+          {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
-              return React.cloneElement(child, {
-                "data-unfold-active": index === defaultLastIndex ? "true" : undefined,
-              } as any);
+              const type = (child.type as any)?.unfoldType || child.type;
+              if (type === "level" || type === DepthLevel) {
+                const isDeepest = proseCount === Math.max(0, maxProse - 1);
+                proseCount++;
+                return React.cloneElement(child, {
+                  "data-unfold-active": isDeepest ? "true" : undefined,
+                } as any);
+              } else if (type === "code" || type === DepthCode) {
+                const isDeepest = codeCount === Math.max(0, maxCode - 1);
+                codeCount++;
+                return React.cloneElement(child, {
+                  "data-unfold-active": isDeepest ? "true" : undefined,
+                } as any);
+              }
             }
             return child;
           })}
@@ -152,67 +212,40 @@ export function Depth({
   }
 
   // Interactive Client-Side Phase
-  const currentDiff = diffTable[currentIndex] || [];
+  // Clamp index for panes if they are shorter than total steps
+  const clampedProseIndex = Math.min(currentIndex, proseDiffTable.length - 1);
+  const clampedCodeIndex = Math.min(currentIndex, codeDiffTable.length - 1);
+
+  const currentProseDiff = clampedProseIndex >= 0 ? proseDiffTable[clampedProseIndex] : [];
+  const currentCodeDiff = clampedCodeIndex >= 0 ? codeDiffTable[clampedCodeIndex] : [];
+  
+  const currentCodeLang = clampedCodeIndex >= 0 ? parsedChildren.codeLevels[clampedCodeIndex]?.lang : undefined;
+  const currentCodeText = clampedCodeIndex >= 0 ? parsedChildren.codeLevels[clampedCodeIndex]?.text : undefined;
 
   return (
     <DepthContext.Provider value={contextValue}>
       <div
         data-unfold-root
+        data-orientation={orientation}
+        data-show={show}
+        style={{ "--unfold-ratio": ratio } as React.CSSProperties}
         data-level={currentIndex}
-        data-total-levels={totalLevels}
+        data-total-levels={totalSteps}
         role="region"
-        aria-label={levels[currentIndex]?.label}
+        aria-label={labels[currentIndex]}
       >
-        <div data-unfold-content aria-live="polite">
-          {currentDiff
-            .filter((item) => item.kind !== "removed")
-            .map((item, index) => {
-              const key = index;
-              if (item.kind === "equal") {
-                return (
-                  <span key={key} data-sentence="equal">
-                    {item.sentence}{" "}
-                  </span>
-                );
-              } else {
-                const sentenceText =
-                  item.kind === "modified" ? item.after : item.sentence;
-                const status =
-                  isBackTransition && !justReturned ? "equal" : "added";
-                return (
-                  <span key={key} data-sentence={status}>
-                    {sentenceText}{" "}
-                  </span>
-                );
-              }
-            })}
-        </div>
-        <div data-unfold-controls>
-          <button
-            data-unfold-back
-            aria-disabled={currentIndex === 0 ? "true" : "false"}
-            aria-label={
-              currentIndex > 0
-                ? `Go back to level: ${levels[currentIndex - 1]?.label}`
-                : undefined
-            }
-            onClick={handleBack}
-          >
-            Back
-          </button>
-          <button
-            data-unfold-next
-            aria-disabled={currentIndex === totalLevels - 1 ? "true" : "false"}
-            aria-label={
-              currentIndex < totalLevels - 1
-                ? `Advance to level: ${levels[currentIndex + 1]?.label}`
-                : undefined
-            }
-            onClick={handleNext}
-          >
-            Next
-          </button>
-        </div>
+        <DepthPane
+          show={show}
+          proseDiff={currentProseDiff}
+          codeDiff={currentCodeDiff}
+          justEntered={justEntered}
+          animate={animate}
+          codeLang={currentCodeLang}
+          codeText={currentCodeText}
+          highlighter={highlighter}
+          highlight={highlight}
+        />
+        <Controls buttonVariant={buttonVariant} indicators={indicators} />
       </div>
     </DepthContext.Provider>
   );

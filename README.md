@@ -1,162 +1,108 @@
 # unfold-mdx
 
-`unfold-mdx` is a standalone npm package that adds progressive-depth prose explanations to React + MDX pipelines. Authors write full text snapshots at each depth level; the library diffs consecutive snapshots at sentence granularity, highlights newly-added or modified sentences when the reader advances a level, and decays that highlight when the reader advances again. The component renders inline — no accordion collapses, no page navigation, and no scroll-jumps.
+Progressive-depth prose & code explanations for React + MDX.
+
+Write full text and code snapshots at each depth level — the library diffs consecutive snapshots at **sentence** and **line/token** granularity, optionally highlights what changed, and lets the reader step through at their own pace. No accordion collapses, no page navigation, no scroll-jumps.
+
+## Features
+
+- **Sentence-level prose diffing** — automatically detects added, modified, and equal sentences between steps
+- **Line & token-level code diffing** — detects added lines, changed lines (with inline token diffs), and equal lines
+- **Opt-in Shiki syntax highlighting** — `unfold-mdx/shiki` adapter colors your code with any Shiki theme
+- **Headless by default** — ships zero CSS; every element uses `data-*` attributes you can target freely
+- **Opinionated theme included** — `import 'unfold-mdx/theme.css'` for a polished dark-mode starting point
+- **SSR / no-JS fallback** — renders the deepest level server-side; hydrates to interactive on the client
+- **Controlled & uncontrolled** — use `defaultIndex` for fire-and-forget, or `selectedIndex` + `onChange` for full control
+- **Accessible** — ARIA labels, `aria-live` regions, `role="tablist"` indicators, `prefers-reduced-motion` support
+- **Tiny** — ~13 KB ESM, only `diff-match-patch` as a runtime dependency
 
 ---
 
 ## Installation
 
-Install the package via npm or your preferred package manager:
-
 ```bash
 npm install unfold-mdx
+# or
+pnpm add unfold-mdx
+# or
+yarn add unfold-mdx
 ```
 
 ### Peer Dependencies
-- `react` >= 18
-- `react-dom` >= 18
+
+| Package     | Version  | Required? |
+|-------------|----------|-----------|
+| `react`     | ≥ 18     | ✅ Yes     |
+| `react-dom` | ≥ 18     | ✅ Yes     |
+| `shiki`     | ^1.0.0   | ❌ Optional |
 
 ---
 
 ## Quick Start
 
-Import the components and write multiple snapshots inside `<Depth>` elements:
+```tsx
+import { Depth, DepthLevel, DepthCode } from "unfold-mdx";
+import "unfold-mdx/theme.css"; // optional — opinionated dark theme
 
-```mdx
-import { Depth, DepthLevel } from "unfold-mdx";
-
-<Depth defaultIndex={0}>
-  <DepthLevel label="overview">
-    Nuclear fission splits a heavy atom into two lighter ones.
-    This releases a large amount of energy.
-  </DepthLevel>
-
-  <DepthLevel label="how it works">
-    Nuclear fission splits a heavy atom into two lighter ones.
-    This releases a large amount of energy.
-    The split is triggered by a neutron striking the nucleus,
-    causing it to become unstable and divide.
-  </DepthLevel>
-
-  <DepthLevel label="why it works">
-    Nuclear fission splits a heavy atom into two lighter ones.
-    This releases a large amount of energy.
-    The split is triggered by a neutron striking the nucleus,
-    causing it to become unstable and divide.
-    The energy comes from the mass difference between the original atom
-    and its products — described by E=mc².
-    Each fission event also releases additional neutrons,
-    enabling a chain reaction.
-  </DepthLevel>
-</Depth>
-```
-
----
-
-## Styling (Headless Approach)
-
-`unfold-mdx` is **headless** and ships with zero CSS styles. You have full styling control using standard CSS attribute selectors.
-
-### HTML DOM Output Structure
-
-```html
-<div data-unfold-root role="region" aria-label="how it works" data-level="1" data-total-levels="3">
-  <div data-unfold-content aria-live="polite">
-    <span data-sentence="equal">Nuclear fission splits a heavy atom into two lighter ones. </span>
-    <span data-sentence="equal">This releases a large amount of energy. </span>
-    <span data-sentence="added">The split is triggered by a neutron striking the nucleus, causing it to become unstable and divide. </span>
-  </div>
-  <div data-unfold-controls>
-    <button data-unfold-back aria-disabled="false" aria-label="Go back to level: overview">Back</button>
-    <button data-unfold-next aria-disabled="false" aria-label="Advance to level: why it works">Next</button>
-  </div>
-</div>
-```
-
-### Example CSS Styling
-
-```css
-/* Root Container styling */
-[data-unfold-root] {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 24px;
-  max-width: 640px;
-}
-
-/* Sentence formatting styles */
-[data-sentence="equal"] {
-  color: #374151;
-  transition: background-color 0.4s ease, color 0.4s ease;
-}
-
-[data-sentence="added"] {
-  background: #fef9c3; /* Yellow highlight for newly revealed sentences */
-  color: #111827;
-  border-radius: 3px;
-  padding: 1px 2px;
-}
-
-/* Controls and navigation buttons */
-[data-unfold-controls] {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  align-items: center;
-}
-
-[data-unfold-controls] button {
-  padding: 6px 18px;
-  border-radius: 5px;
-  border: 1px solid #cbd5e1;
-  background: #f1f5f9;
-  cursor: pointer;
-}
-
-[data-unfold-controls] button[aria-disabled="true"] {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-```
-
----
-
-## Composing with Code Hike
-
-`unfold-mdx` integrates cleanly with Code Hike using a shared step index. This allows a single controller to synchronize your prose pane and Code Hike code layout panels (e.g. `<CH.Spotlight>`).
-
-Use the `useSharedIndex` hook to manage the selection index at the page level and spread it to both components:
-
-```mdx
-import { Depth, DepthLevel, useSharedIndex } from "unfold-mdx";
-import { SelectionProvider } from "codehike/utils/selection";
-
-export const MyInteractivePage = () => {
-  const totalLevels = 3;
-  const { selectedIndex, advance, back, setIndex } = useSharedIndex(totalLevels);
-
+export default function Demo() {
   return (
-    <SelectionProvider value={selectedIndex}>
-      <div style={{ display: "flex", gap: "2rem" }}>
-        {/* Prose Pane */}
-        <Depth selectedIndex={selectedIndex} onChange={setIndex}>
-          <DepthLevel label="overview">...</DepthLevel>
-          <DepthLevel label="how it works">...</DepthLevel>
-          <DepthLevel label="why it works">...</DepthLevel>
-        </Depth>
+    <Depth show="both" orientation="horizontal" indicators buttonVariant="arrow">
+      <DepthLevel label="Overview">
+        Quicksort is a divide-and-conquer sorting algorithm.
+        It selects a 'pivot' element and partitions the array around it.
+      </DepthLevel>
+      <DepthCode lang="typescript">
+{`function quicksort(arr: number[]): number[] {
+  if (arr.length <= 1) return arr;
+}`}
+      </DepthCode>
 
-        {/* Code Pane driven by the same index */}
-        <CH.Spotlight>
-          {/* Spotlight steps */}
-        </CH.Spotlight>
-      </div>
-    </SelectionProvider>
+      <DepthLevel label="Partitioning">
+        Quicksort is a divide-and-conquer sorting algorithm.
+        It selects a 'pivot' element and partitions the array around it.
+        Elements smaller than the pivot go left; larger ones go right.
+      </DepthLevel>
+      <DepthCode lang="typescript">
+{`function quicksort(arr: number[]): number[] {
+  if (arr.length <= 1) return arr;
+
+  const pivot = arr[arr.length - 1];
+  const left = arr.filter((x) => x < pivot);
+  const right = arr.filter((x) => x > pivot);
+}`}
+      </DepthCode>
+    </Depth>
   );
-};
+}
 ```
 
-> [!NOTE]
-> `SelectionProvider` is imported directly from Code Hike (`codehike/utils/selection`). `unfold-mdx` does not re-export or bundle Code Hike. If Code Hike is absent, `useSharedIndex` still works to control the `<Depth>` pane alone.
+Click **Next** → the library diffs the two snapshots and renders only the current step, marking new sentences and code lines.
+
+---
+
+## Adding Shiki Syntax Highlighting
+
+```tsx
+import { Depth, DepthLevel, DepthCode } from "unfold-mdx";
+import { createShikiHighlighter } from "unfold-mdx/shiki";
+import "unfold-mdx/theme.css";
+
+// Create once at module scope
+const highlighter = createShikiHighlighter({
+  theme: "vitesse-dark",
+  langs: ["typescript"],
+});
+
+export default function Demo() {
+  return (
+    <Depth show="both" highlighter={highlighter} indicators>
+      {/* ...steps... */}
+    </Depth>
+  );
+}
+```
+
+Shiki loads asynchronously. Before it's ready, code renders with the raw diff tokens (no colors). Once loaded, the component re-renders with full syntax coloring — no layout shift.
 
 ---
 
@@ -165,71 +111,165 @@ export const MyInteractivePage = () => {
 ### `<Depth>` Props
 
 | Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `selectedIndex` | `number` | — | Controlled current depth index (0-based). Used when `onChange` is also provided. |
-| `defaultIndex` | `number` | `0` | Uncontrolled initial depth index. |
-| `onChange` | `(i: number) => void` | — | Callback fired when the reader navigates to a new depth index. |
-| `children` | `ReactNode` | — | One or more `<DepthLevel>` components. |
+|------|------|---------|-------------|
+| `selectedIndex` | `number` | — | Controlled mode: current step index (0-based). |
+| `defaultIndex` | `number` | `0` | Uncontrolled mode: initial step index. |
+| `onChange` | `(i: number) => void` | — | Callback when the step changes. |
+| `orientation` | `"horizontal" \| "vertical"` | `"horizontal"` | Pane layout direction (when `show="both"`). |
+| `ratio` | `number` | `0.5` | Prose/code width split (0–1). Exposed as `--unfold-ratio`. |
+| `show` | `"both" \| "prose" \| "code"` | `"both"` | Which panes to render. |
+| `indicators` | `boolean` | `false` | Show clickable step-indicator dots. |
+| `buttonVariant` | `"text" \| "arrow" \| "chevron" \| "minimal"` | `"text"` | Navigation button label style. |
+| `animate` | `boolean` | `true` | Set `data-enter="true"` for one frame on new elements. |
+| `highlight` | `boolean` | `true` | Mark added/changed elements with `data-sentence="added"` / `data-code-line="added"`. Set `false` to disable all visual diff markers. |
+| `highlighter` | `ShikiHighlighter` | — | Shiki adapter instance from `createShikiHighlighter()`. |
 
 ### `<DepthLevel>` Props
 
 | Prop | Type | Description |
-| --- | --- | --- |
-| `label` | `string` | The human-readable name of the level (e.g. "overview"). |
-| `children` | `ReactNode` | Full prose snapshot text/content for this level. |
+|------|------|-------------|
+| `label` | `string` | Human-readable step name (used in ARIA labels and indicators). |
+| `children` | `ReactNode` | Full prose snapshot for this step. |
 
-### `useSharedIndex(totalLevels: number)` return shape
+### `<DepthCode>` Props
 
-Returns an object with:
-- `selectedIndex: number` - The clamped index.
-- `advance: () => void` - Increments the index (clamped to `totalLevels - 1`).
-- `back: () => void` - Decrements the index (clamped to `0`).
-- `setIndex: (i: number) => void` - Sets the index directly (clamped to `[0, totalLevels - 1]`).
+| Prop | Type | Description |
+|------|------|-------------|
+| `lang` | `string` | Language identifier (e.g. `"typescript"`, `"python"`). |
+| `label` | `string` | Optional label for the code pane. |
+| `children` | `string` | Full raw code string for this step. |
 
-### `SentenceDiff` Type
+---
 
-```typescript
-type SentenceDiff =
-  | { kind: "equal";    sentence: string }
-  | { kind: "added";    sentence: string }
-  | { kind: "removed";  sentence: string }
-  | { kind: "modified"; before: string; after: string };
+## Styling
+
+### Headless (default)
+
+`unfold-mdx` renders plain HTML with `data-*` attributes. You style everything yourself:
+
+```css
+/* Prose highlights */
+[data-sentence="added"]  { border-left: 2px solid #3b82f6; padding-left: 8px; }
+[data-sentence="equal"]  { /* normal text */ }
+
+/* Code line highlights */
+[data-code-line="added"],
+[data-code-line="changed"] { background: rgba(59, 130, 246, 0.08); }
+[data-code-line="equal"]   { /* normal code */ }
+
+/* Controls */
+[data-unfold-controls] { display: flex; gap: 12px; margin-top: 16px; }
+[data-unfold-dot][data-active="true"] { background: #3b82f6; }
+
+/* Enter animation */
+[data-enter="true"] { animation: flash 0.4s ease-out; }
+@keyframes flash {
+  from { background-color: rgba(59, 130, 246, 0.15); }
+  to   { background-color: transparent; }
+}
+```
+
+### Opinionated Theme
+
+```tsx
+import "unfold-mdx/theme.css";
+```
+
+Override any design token with CSS custom properties:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `--unfold-ratio` | `0.5` | Prose/code split |
+| `--unfold-prose-color` | `#e2e8f0` | Prose text color |
+| `--unfold-code-bg` | `#0d1117` | Code pane background |
+| `--unfold-code-border` | `rgba(56,189,248,0.15)` | Code pane border |
+| `--unfold-code-text` | `#c9d1d9` | Code fallback text |
+| `--unfold-highlight` | `rgba(56,189,248,0.5)` | Highlight border color |
+| `--unfold-highlight-bg` | `rgba(56,189,248,0.06)` | Highlight background |
+| `--unfold-btn-bg` | `rgba(255,255,255,0.06)` | Button background |
+| `--unfold-btn-border` | `rgba(255,255,255,0.12)` | Button border |
+| `--unfold-btn-text` | `#e2e8f0` | Button text |
+| `--unfold-btn-hover-bg` | `rgba(255,255,255,0.12)` | Button hover background |
+| `--unfold-dot-bg` | `rgba(255,255,255,0.15)` | Inactive dot |
+| `--unfold-dot-active` | `#38bdf8` | Active dot |
+
+---
+
+## DOM Output
+
+```html
+<div data-unfold-root data-orientation="horizontal" data-show="both"
+     data-level="1" data-total-levels="3"
+     role="region" aria-label="Partitioning"
+     style="--unfold-ratio: 0.5;">
+  <div data-unfold-panes>
+    <div data-unfold-pane="prose" aria-live="polite">
+      <span data-sentence="equal">Quicksort is a divide-and-conquer sorting algorithm. </span>
+      <span data-sentence="equal">It selects a 'pivot' element... </span>
+      <span data-sentence="added" data-enter="true">Elements smaller than the pivot go left; larger ones go right. </span>
+    </div>
+    <div data-unfold-pane="code" aria-live="polite">
+      <pre data-lang="typescript">
+        <code>
+          <span data-code-line="equal"><span data-code-token="equal" style="color:#CB7676">function</span>...</span>
+          <span data-code-line="added" data-enter="true"><span data-code-token="added" style="color:#BD976A">const</span>...</span>
+        </code>
+      </pre>
+    </div>
+  </div>
+  <div data-unfold-controls data-button-variant="arrow">
+    <button data-unfold-prev aria-disabled="false">← Prev</button>
+    <div data-unfold-indicators role="tablist">
+      <button data-unfold-dot role="tab" aria-selected="false"></button>
+      <button data-unfold-dot role="tab" aria-selected="true" data-active="true"></button>
+      <button data-unfold-dot role="tab" aria-selected="false"></button>
+    </div>
+    <button data-unfold-next aria-disabled="false">Next →</button>
+  </div>
+</div>
 ```
 
 ---
 
-## SSR / no-JS Fallback
+## SSR / No-JS Fallback
 
-For SSR / no-JS environments, `DepthLevel` falls back to rendering its children directly inside a container with `data-depth-level`. By default, only the last (deepest) level is displayed. 
-
-To hide inactive levels before hydration, add the following CSS rule to your global stylesheet:
+`<Depth>` renders all children server-side with `data-unfold-active` on the deepest level. Add this CSS to hide inactive levels before hydration:
 
 ```css
-[data-unfold-root] [data-depth-level]:not([data-unfold-active]) {
+[data-unfold-root] > [data-depth-level]:not([data-unfold-active]),
+[data-unfold-root] > pre[data-lang]:not([data-unfold-active]) {
   display: none;
 }
 ```
 
-This ensures a clean, cumulative no-JS presentation where only the final prose level is visible to readers who have JavaScript disabled, while interactive clients take over control automatically post-hydration.
+This is included in `theme.css` by default.
 
 ---
 
-## Investigation Note: Using `useSelectedIndex` outside Code Hike Layouts
+## Standalone Diff Utilities
 
-- **Finding**: `useSelectedIndex()` uses React's context API to read state from the nearest `<SelectionProvider>`. A component **must be a descendant (child)** of `<SelectionProvider>` in the React tree to use the hook. Calling it inside the page-level component that *renders* `<SelectionProvider>` will return `undefined` (because context is not available at the same level as its provider).
-- **Recommended Pattern**: Lift selection state to the page level using `useSharedIndex` and pass it down as props directly to `<Depth selectedIndex={selectedIndex} onChange={setIndex}>` and `<SelectionProvider value={selectedIndex}>`.
+The diff engine is available as a separate entry point for use outside of React:
 
----
+```ts
+import { sentenceDiff, codeDiff, tokenize } from "unfold-mdx/diff";
 
-## Examples
+const prose = sentenceDiff(
+  "The sky is blue.",
+  "The sky is blue. The grass is green."
+);
+// => [{ kind: "equal", sentence: "The sky is blue." },
+//     { kind: "added", sentence: "The grass is green." }]
 
-We provide interactive, worked demos showing both standalone and synced integration styles in the [examples/](file:///Users/saurabhshakya/Documents/Projects/unfold-mdx/examples) directory:
-
-1. **Nuclear Fission Demo (Standalone)**: Demonstrates `<Depth>` and `<DepthLevel>` usage with headless styling selectors and yellow highlights on newly added sentences.
-2. **Quicksort Demo (Code Hike Sync)**: Demonstrates the `useSharedIndex` synchronization hook driving both `<Depth>` and a code highlighted panel via `SelectionProvider` in sync.
+const code = codeDiff(
+  "const x = 1;",
+  "const x = 1;\nconst y = 2;"
+);
+// => [{ kind: "equal", line: "const x = 1;" },
+//     { kind: "added", tokens: [...] }]
+```
 
 ---
 
 ## License
 
-MIT License
+[MIT](./LICENSE)
