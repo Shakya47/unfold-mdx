@@ -1,6 +1,8 @@
-# unfold-mdx
+# @unfold-mdx/react
 
 Progressive-depth prose & code explanations for React + MDX.
+
+![unfold-mdx Demo](./demo.gif)
 
 Write full text and code snapshots at each depth level — the library diffs consecutive snapshots at **sentence** and **line/token** granularity, optionally highlights what changed, and lets the reader step through at their own pace. No accordion collapses, no page navigation, no scroll-jumps.
 
